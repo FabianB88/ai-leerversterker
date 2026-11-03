@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>AI als leerversterker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --bg: #FAF8F4;
+  --surface: #FFFFFF;
+  --ink: #1F2620;
+  --muted: #5E665F;
+  --line: #E4E1D9;
+  --sage: #5C7A5A;
+  --sage-soft: #E9EFE7;
+  --on-sage: #FFFFFF;
+  --good: #2F7A4B;
+  --good-soft: #E4F2E8;
+  --bad: #A8473B;
+  --bad-soft: #F8E8E5;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141816; --surface: #1D2320; --ink: #E8ECE7; --muted: #A2ABA3; --line: #2F3632;
+    --sage: #93B48F; --sage-soft: #24302A; --on-sage: #0F1610;
+    --good: #72C38F; --good-soft: #1E3327; --bad: #E58C7E; --bad-soft: #3A2622;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141816; --surface: #1D2320; --ink: #E8ECE7; --muted: #A2ABA3; --line: #2F3632;
+  --sage: #93B48F; --sage-soft: #24302A; --on-sage: #0F1610;
+  --good: #72C38F; --good-soft: #1E3327; --bad: #E58C7E; --bad-soft: #3A2622;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.6; }
+.app {
+  display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 32px;
+  max-width: 1200px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 48px;
+}
+.side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; display: flex; flex-direction: column; gap: 20px; }
+.kicker { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--sage); }
+.side h1 { font-size: 22px; line-height: 1.25; margin: 4px 0 0; font-weight: 700; text-wrap: balance; }
+.meta { font-size: 14px; color: var(--muted); margin: 6px 0 0; }
+.progress { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.progress span { display: block; height: 100%; width: 0; background: var(--sage); border-radius: 99px; transition: width .3s ease; }
+.nav { display: flex; flex-direction: column; gap: 14px; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-label { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 0 10px 4px; }
+.nav button {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  font: inherit; font-size: 15px; color: var(--ink); background: none; border: 0;
+  padding: 8px 10px; border-radius: 10px; cursor: pointer;
+}
+.nav button:hover { background: var(--sage-soft); }
+.nav button[aria-current="step"] { background: var(--sage-soft); font-weight: 600; color: var(--sage); }
+.dot { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line); flex: none; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: transparent; }
+.nav button[aria-current="step"] .dot { border-color: var(--sage); }
+.dot.done { background: var(--sage); border-color: var(--sage); color: var(--on-sage); }
+.dot.done.wrong { background: var(--bad); border-color: var(--bad); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; min-width: 0; }
+.step[hidden] { display: none; }
+.step h2 { font-size: 26px; line-height: 1.25; margin: 6px 0 12px; font-weight: 700; text-wrap: balance; }
+.lead { color: var(--muted); max-width: 62ch; margin: 0 0 24px; }
+.step-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.btn {
+  font: inherit; font-size: 15px; font-weight: 600; border-radius: 10px; padding: 10px 18px; cursor: pointer;
+  border: 1px solid var(--sage); background: var(--sage); color: var(--on-sage);
+}
+.btn.ghost { background: transparent; color: var(--sage); }
+.btn:disabled { opacity: .45; cursor: default; }
+button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
+.player { border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; background: var(--sage-soft); }
+.play { width: 60px; height: 60px; border-radius: 50%; border: 0; background: var(--sage); color: var(--on-sage); display: grid; place-items: center; cursor: pointer; }
+.play:disabled { opacity: .45; cursor: default; }
+.play svg { width: 24px; height: 24px; fill: currentColor; }
+.ptitle { font-weight: 600; font-size: 16px; }
+.psub { font-size: 14px; color: var(--muted); }
+.scrub { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.scrub input { flex: 1; min-width: 0; accent-color: var(--sage); }
+.time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.speed { font: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 3px 8px; cursor: pointer; }
+.pending { margin-top: 10px; font-size: 14px; color: var(--muted); }
+.disclosure { margin-top: 20px; border: 1px solid var(--line); border-radius: 12px; }
+.disclosure summary { cursor: pointer; padding: 14px 18px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+.disclosure summary::-webkit-details-marker { display: none; }
+.disclosure summary::after { content: "+"; color: var(--sage); font-weight: 700; }
+.disclosure[open] summary::after { content: "\2212"; }
+.disclosure ul { margin: 0; padding: 0 18px 16px 38px; display: flex; flex-direction: column; gap: 6px; }
+.rode { margin-top: 20px; padding: 16px 18px; border-radius: 12px; border: 1px dashed var(--sage); color: var(--ink); }
+.rode b { color: var(--sage); }
+.listen-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.listen-main { min-width: 0; }
+.sources { border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; min-width: 0; }
+.sources h3 { margin: 0 0 6px; font-size: 15px; }
+.src-intro { margin: 0 0 14px; font-size: 14px; color: var(--muted); }
+.src-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.src-list li { display: flex; flex-direction: column; gap: 2px; padding-top: 12px; border-top: 1px solid var(--line); }
+.src-list li:first-child { padding-top: 0; border-top: 0; }
+.src-what { font-size: 13px; font-weight: 600; color: var(--sage); }
+.src-ref { font-size: 13px; line-height: 1.5; }
+.src-list a { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.src-list a:hover { color: var(--sage); }
+@media (max-width: 1100px) { .listen-grid { grid-template-columns: minmax(0, 1fr); } }
+.qnum { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.options { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.opt {
+  width: 100%; text-align: left; font: inherit; font-size: 15px; color: var(--ink);
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px;
+  display: flex; gap: 12px; align-items: flex-start; cursor: pointer;
+}
+.opt:hover:not(:disabled) { border-color: var(--sage); }
+.opt:disabled { cursor: default; }
+.letter { flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--sage-soft); color: var(--sage); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+.opt.right { border-color: var(--good); background: var(--good-soft); }
+.opt.right .letter { background: var(--good); color: var(--surface); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt.wrong .letter { background: var(--bad); color: var(--surface); }
+.opt.faded { opacity: .55; }
+.feedback { margin-top: 18px; padding: 16px 18px; border-radius: 12px; border-left: 4px solid var(--good); background: var(--good-soft); }
+.feedback.bad { border-left-color: var(--bad); background: var(--bad-soft); }
+.feedback p { margin: 0; }
+.deep-btn { margin-top: 14px; font: inherit; font-size: 14px; font-weight: 600; color: var(--sage); background: var(--surface); border: 1px solid var(--sage); border-radius: 99px; padding: 6px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.deep { margin-top: 14px; padding: 18px 20px; border-radius: 12px; background: var(--sage-soft); }
+.deep h3 { margin: 0 0 6px; font-size: 15px; color: var(--sage); }
+.deep p { margin: 0 0 10px; max-width: 64ch; }
+.deep .bron { font-size: 13px; color: var(--muted); margin: 0; }
+.score { display: flex; align-items: baseline; gap: 10px; padding: 16px 18px; border-radius: 12px; background: var(--sage-soft); margin-bottom: 24px; }
+.score strong { font-size: 28px; color: var(--sage); font-variant-numeric: tabular-nums; }
+.field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.field label, .field .flabel { font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: inherit; font-size: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 99px; padding: 7px 14px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--sage); background: var(--sage); color: var(--on-sage); }
+textarea { font: inherit; font-size: 15px; color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; min-height: 76px; resize: vertical; width: 100%; }
+.note { font-size: 14px; color: var(--muted); }
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-block: 20px 32px; }
+  .side { position: static; gap: 14px; }
+  .nav { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .nav-group { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .nav-label { display: none; }
+  .nav button { width: auto; padding: 6px 10px; border: 1px solid var(--line); background: var(--surface); }
+  .card { padding: 22px 18px; }
+  .step h2 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div>
+      <div class="kicker">BDB · AI in blended onderwijs</div>
+      <h1>AI als leerversterker</h1>
+      <p class="meta">Ca. 5 minuten · podcast en 3 vragen</p>
+    </div>
+    <div class="progress" aria-hidden="true"><span id="bar"></span></div>
+    <nav class="nav" id="nav" aria-label="Stappen"></nav>
+  </aside>
+
+  <main class="card">
+    <section class="step" id="step-luister">
+      <div class="kicker">Stap 1 · Luisteren</div>
+      <h2>Wanneer versterkt AI het leren?</h2>
+      <p class="lead">Luister naar de podcast van ongeveer 3 minuten. Daarna beantwoord je drie korte vragen.</p>
+
+      <div class="listen-grid">
+      <div class="listen-main">
+      <div class="player" id="player">
+        <button class="play" id="playBtn" type="button" aria-label="Afspelen">
+          <svg id="icoPlay" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z"/></svg>
+          <svg id="icoPause" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+        </button>
+        <div style="min-width:0">
+          <div class="ptitle">Podcast: AI als leerversterker in blended onderwijs</div>
+          <div class="psub">Geen voorkennis nodig</div>
+          <div class="scrub">
+            <input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="Positie in de podcast">
+            <span class="time" id="time">0:00 / 0:00</span>
+            <button class="speed" id="speed" type="button" aria-label="Afspeelsnelheid">1x</button>
+          </div>
+          <div class="pending" id="pending" hidden>De podcast wordt hier binnenkort toegevoegd.</div>
+        </div>
+        <audio id="audio" preload="metadata" src="podcast.mp3"></audio>
+      </div>
+
+      <details class="disclosure">
+        <summary>Kernpunten van de podcast</summary>
+        <ul>
+          <li>AI versterkt het leren als het de student laat denken, en verzwakt het als het dat denken overneemt.</li>
+          <li>In blended onderwijs zit de winst vooral in het online deel: uitleg, oefenen en directe feedback in eigen tempo.</li>
+          <li>Drie rollen: de docent bouwt een adaptieve leeromgeving, de student leert met een zelfgemaakte tool, de docent ontwerpt de les met AI.</li>
+          <li>Ontwerpregels: vragen in plaats van antwoorden, één stap tegelijk, feedback op het denkproces.</li>
+        </ul>
+      </details>
+
+      <div class="rode"><b>Rode draad van vandaag:</b> versterkt dit het leren, of neemt AI het denkwerk over?</div>
+      </div>
+
+      <aside class="sources" aria-labelledby="srcTitle">
+        <h3 id="srcTitle">Waar komt de podcast vandaan?</h3>
+        <p class="src-intro">De podcast is met AI (NotebookLM) gemaakt op basis van een brondocument met deze onderzoeken.</p>
+        <ol class="src-list">
+          <li>
+            <span class="src-what">Dezelfde AI, twee uitkomsten</span>
+            <span class="src-ref">Bastani e.a. (2025). Generative AI without guardrails can harm learning: Evidence from high school mathematics. <i>PNAS, 122</i>(26).</span>
+            <a href="https://doi.org/10.1073/pnas.2422633122" target="_blank" rel="noopener">doi.org/10.1073/pnas.2422633122</a>
+          </li>
+          <li>
+            <span class="src-what">AI-tutor die één stap tegelijk geeft</span>
+            <span class="src-ref">Kestin e.a. (2025). AI tutoring outperforms in-class active learning. <i>Scientific Reports, 15</i>, 17458.</span>
+            <a href="https://doi.org/10.1038/s41598-025-97652-6" target="_blank" rel="noopener">doi.org/10.1038/s41598-025-97652-6</a>
+          </li>
+          <li>
+            <span class="src-what">Zelf overhoren helpt onthouden</span>
+            <span class="src-ref">Roediger &amp; Karpicke (2006). Test-enhanced learning. <i>Psychological Science, 17</i>(3), 249-255.</span>
+            <a href="https://doi.org/10.1111/j.1467-9280.2006.01693.x" target="_blank" rel="noopener">doi.org/10.1111/j.1467-9280.2006.01693.x</a>
+          </li>
+          <li>
+            <span class="src-what">Feedback op het denkproces</span>
+            <span class="src-ref">Hattie &amp; Timperley (2007). The power of feedback. <i>Review of Educational Research, 77</i>(1), 81-112.</span>
+            <a href="https://doi.org/10.3102/003465430298487" target="_blank" rel="noopener">doi.org/10.3102/003465430298487</a>
+          </li>
+          <li>
+            <span class="src-what">Wat blended leren is</span>
+            <span class="src-ref">Graham (2006). Blended learning systems. In <i>The handbook of blended learning</i> (pp. 3-21). Pfeiffer.</span>
+          </li>
+        </ol>
+      </aside>
+      </div>
+
+      <div class="step-foot">
+        <span class="note">Klaar met luisteren?</span>
+        <button class="btn" type="button" data-go="next">Naar de vragen</button>
+      </div>
+    </section>
+
+    <div id="questions"></div>
+
+    <section class="step" id="step-meenemen" hidden>
+      <div class="kicker">Stap 3 · Meenemen</div>
+      <h2>Neem dit mee naar het whiteboard</h2>
+      <div class="score"><strong id="scoreNum">0 van 3</strong><span id="scoreTxt">goed beantwoord</span></div>
+
+      <div class="field">
+        <span class="flabel" id="lblStand">Waar sta jij met AI in je onderwijs?</span>
+        <div class="chips" role="group" aria-labelledby="lblStand" id="chips">
+          <button class="chip" type="button" aria-pressed="false">Nog niet</button>
+          <button class="chip" type="button" aria-pressed="false">Ik experimenteer</button>
+          <button class="chip" type="button" aria-pressed="false">Ik gebruik het structureel</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="kans">Welke kans zie je voor jouw onderwijs?</label>
+        <textarea id="kans" placeholder="Bijvoorbeeld: studenten oefenen thuis met een AI die terugvraagt"></textarea>
+      </div>
+      <div class="field">
+        <label for="risico">Welk risico zie je?</label>
+        <textarea id="risico" placeholder="Bijvoorbeeld: studenten laten AI de opdracht maken"></textarea>
+      </div>
+      <p class="note">Dit blijft op je eigen scherm en wordt nergens opgeslagen. In het plenaire deel zetten we het samen op het bord.</p>
+
+      <div class="step-foot">
+        <button class="btn ghost" type="button" data-go="prev">Vorige</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    q: "In een onderzoek oefenden scholieren wiskunde met AI. Hoe deed de groep met een gewone chatbot, die gewoon antwoorden gaf, het daarna op de toets zonder AI?",
+    options: [
+      "Ze scoorden ongeveer gelijk aan leerlingen die nooit AI hadden gebruikt",
+      "Ze scoorden lager dan leerlingen die nooit AI hadden gebruikt",
+      "Ze scoorden hoger, omdat ze tijdens het oefenen meer opgaven hadden gemaakt",
+      "Ze scoorden hoger dan de groep die met de tutorversie had geoefend"
+    ],
+    correct: 1,
+    good: "Klopt. Tijdens het oefenen ging het beter, maar op de toets zonder AI scoorden ze lager. Ze hadden AI gebruikt als kruk.",
+    bad: "Niet helemaal. Ze scoorden juist lager dan leerlingen die nooit AI hadden gehad. Tijdens het oefenen ging het beter, maar ze hadden AI gebruikt als kruk.",
+    deepTitle: "Prestatie is nog geen leren",
+    deep: [
+      "Het onderzoek liep bij bijna duizend scholieren in Turkije. Eén groep oefende met een gewone chatbot, een andere met een tutorversie die hints gaf en het antwoord niet voorzei.",
+      "Tijdens het oefenen deden beide AI-groepen het beter dan leerlingen zonder AI. Op de toets zonder AI scoorde de groep met de gewone chatbot 17 procent lager dan leerlingen die nooit AI hadden gehad. Bij de tutorversie bleef dat negatieve effect grotendeels uit.",
+      "Wat iemand met hulp kan, is dus nog niet wat hij zelf beheerst. Niet óf je AI inzet bepaalt het leereffect, maar hoe de AI is ingesteld."
+    ],
+    bron: "Bastani e.a. (2025), Proceedings of the National Academy of Sciences."
+  },
+  {
+    q: "Welke ontwerpkeuze maakt een AI-tool het meest leerversterkend?",
+    options: [
+      "De tool geeft direct een volledige, correcte uitwerking van de opgave",
+      "De tool vat de lesstof samen, zodat de student sneller door de stof gaat",
+      "De tool stelt vragen terug en geeft telkens maar één stap tegelijk",
+      "De tool beantwoordt elke vraag van de student zo snel en compleet mogelijk"
+    ],
+    correct: 2,
+    good: "Klopt. Een tool die terugvraagt en één stap tegelijk geeft, laat het denkwerk bij de student.",
+    bad: "Niet helemaal. Snelle, complete antwoorden voelen behulpzaam, maar nemen het denkwerk over. Een tool die terugvraagt en één stap tegelijk geeft, versterkt het leren.",
+    deepTitle: "Eén stap tegelijk",
+    deep: [
+      "Op Harvard leerden studenten natuurkunde thuis met een AI-tutor die volgens onderwijskundige principes was ontworpen. De tutor gaf telkens maar één stap en nooit de volledige uitwerking.",
+      "Studenten leerden zo in minder tijd meer dan in een goede, activerende les in de klas, en voelden zich meer betrokken.",
+      "Dat sluit aan bij wat we al wisten over feedback: die werkt het best als ze over het denkproces gaat en de volgende stap zichtbaar maakt, niet alleen over goed of fout."
+    ],
+    bron: "Kestin e.a. (2025), Scientific Reports; Hattie & Timperley (2007), Review of Educational Research."
+  },
+  {
+    q: "Waar levert AI in blended onderwijs de meeste winst op?",
+    options: [
+      "In het online deel, zodat de tijd in de klas vrijkomt voor discussie en toepassen",
+      "In de klas, zodat de docent minder hoeft uit te leggen en meer kan begeleiden",
+      "Bij het toetsen, zodat studenten sneller en vaker een beoordeling krijgen",
+      "Bij het samenvatten van de stof, zodat studenten minder hoeven te lezen"
+    ],
+    correct: 0,
+    good: "Klopt. Online kan AI uitleggen, laten oefenen en direct feedback geven, zodat de klas vrij is voor wat mensen samen het best doen.",
+    bad: "Niet helemaal. De winst zit vooral in het online deel: daar kan AI uitleggen, laten oefenen en feedback geven, zodat de klas vrij is voor discussie en toepassen.",
+    deepTitle: "Wat doet online, wat doet de klas?",
+    deep: [
+      "Blended onderwijs combineert online leren met leren in de klas. Online is sterk in eigen tempo werken, herhalen en oefenen. De klas is sterk in samen nadenken, discussie en begeleiding.",
+      "AI maakt vooral het online deel sterker. Daardoor is de klas niet meer nodig voor de basis. De onderzoekers van de Harvard-studie zien hun AI-tutor daarom niet als vervanging van de docent, maar als manier om lestijd vrij te maken voor moeilijkere en creatievere opdrachten.",
+      "Straks zie je drie voorbeelden: een docent die een adaptieve leeromgeving bouwt, een student die leert met een zelfgemaakte tool en een docent die de les ontwerpt met AI."
+    ],
+    bron: "Kestin e.a. (2025), Scientific Reports; Graham (2006), The handbook of blended learning."
+  }
+];
+
+const qWrap = document.getElementById("questions");
+const answers = QUESTIONS.map(() => null);
+QUESTIONS.forEach((item, i) => {
+  const s = document.createElement("section");
+  s.className = "step"; s.id = "step-v" + (i + 1); s.hidden = true;
+  s.innerHTML = `
+    <div class="kicker">Stap 2 · Vragen</div>
+    <div class="qnum">Vraag ${i + 1} van ${QUESTIONS.length}</div>
+    <h2>${item.q}</h2>
+    <ul class="options">${item.options.map((o, j) => `
+      <li><button class="opt" type="button" data-i="${j}"><span class="letter">${"ABCD"[j]}</span><span>${o}</span></button></li>`).join("")}
+    </ul>
+    <div class="fb-slot"></div>
+    <div class="step-foot">
+      <button class="btn ghost" type="button" data-go="prev">Vorige</button>
+      <button class="btn next-btn" type="button" data-go="next" disabled>${i === QUESTIONS.length - 1 ? "Afronden" : "Volgende vraag"}</button>
+    </div>`;
+  qWrap.appendChild(s);
+  s.querySelectorAll(".opt").forEach(btn => btn.addEventListener("click", () => answer(i, +btn.dataset.i, s)));
+});
+
+function answer(qi, choice, section) {
+  if (answers[qi] !== null) return;
+  const item = QUESTIONS[qi];
+  answers[qi] = choice;
+  section.querySelectorAll(".opt").forEach((b, j) => {
+    b.disabled = true;
+    if (j === item.correct) b.classList.add("right");
+    else if (j === choice) b.classList.add("wrong");
+    else b.classList.add("faded");
+  });
+  const ok = choice === item.correct;
+  const slot = section.querySelector(".fb-slot");
+  const deepId = "deep-" + qi;
+  slot.innerHTML = `
+    <div class="feedback ${ok ? "" : "bad"}"><p>${ok ? item.good : item.bad}</p></div>
+    <button class="deep-btn" type="button" aria-expanded="false" aria-controls="${deepId}"><span>Verdieping</span><span aria-hidden="true">+</span></button>
+    <div class="deep" id="${deepId}" hidden>
+      <h3>${item.deepTitle}</h3>
+      ${item.deep.map(p => `<p>${p}</p>`).join("")}
+      <p class="bron">Bron: ${item.bron}</p>
+    </div>`;
+  const db = slot.querySelector(".deep-btn"), panel = slot.querySelector(".deep");
+  db.addEventListener("click", () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    db.setAttribute("aria-expanded", String(open));
+    db.lastElementChild.textContent = open ? "−" : "+";
+  });
+  section.querySelector(".next-btn").disabled = false;
+  renderNav();
+}
+
+const STEPS = [
+  { id: "step-luister", label: "Podcast", group: "Luisteren" },
+  ...QUESTIONS.map((_, i) => ({ id: "step-v" + (i + 1), label: "Vraag " + (i + 1), group: "Vragen", q: i })),
+  { id: "step-meenemen", label: "Meenemen", group: "Afronden" }
+];
+let current = 0;
+const visited = new Set([0]);
+const nav = document.getElementById("nav");
+
+function renderNav() {
+  const groups = {};
+  STEPS.forEach((s, i) => (groups[s.group] = groups[s.group] || []).push([s, i]));
+  nav.innerHTML = Object.entries(groups).map(([g, items]) => `
+    <div class="nav-group"><div class="nav-label">${g}</div>
+      ${items.map(([s, i]) => {
+        let cls = "dot", mark = "";
+        if (s.q !== undefined && answers[s.q] !== null) { cls += " done" + (answers[s.q] === QUESTIONS[s.q].correct ? "" : " wrong"); mark = answers[s.q] === QUESTIONS[s.q].correct ? "✓" : "×"; }
+        else if (s.q === undefined && visited.has(i) && i !== current) { cls += " done"; mark = "✓"; }
+        return `<button type="button" data-step="${i}" ${i === current ? 'aria-current="step"' : ""}><span class="${cls}" aria-hidden="true">${mark}</span>${s.label}</button>`;
+      }).join("")}
+    </div>`).join("");
+  nav.querySelectorAll("button").forEach(b => b.addEventListener("click", () => go(+b.dataset.step)));
+  const answered = answers.filter(a => a !== null).length;
+  document.getElementById("bar").style.width = Math.round(((visited.size - 1 + answered) / (STEPS.length - 1 + QUESTIONS.length)) * 100) + "%";
+}
+
+function go(i) {
+  if (i < 0 || i >= STEPS.length) return;
+  current = i; visited.add(i);
+  STEPS.forEach((s, j) => document.getElementById(s.id).hidden = j !== i);
+  if (STEPS[i].id === "step-meenemen") {
+    const good = answers.filter((a, k) => a === QUESTIONS[k].correct).length;
+    const done = answers.filter(a => a !== null).length;
+    document.getElementById("scoreNum").textContent = good + " van " + QUESTIONS.length;
+    document.getElementById("scoreTxt").textContent = done < QUESTIONS.length ? "goed, " + (QUESTIONS.length - done) + " nog niet beantwoord" : "goed beantwoord";
+  }
+  renderNav();
+  document.querySelector(".card").scrollIntoView({ block: "start", behavior: "smooth" });
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-go]");
+  if (t && !t.disabled) go(current + (t.dataset.go === "next" ? 1 : -1));
+});
+
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === c)));
+}));
+
+const audio = document.getElementById("audio"), playBtn = document.getElementById("playBtn");
+const seek = document.getElementById("seek"), timeEl = document.getElementById("time"), speedBtn = document.getElementById("speed");
+const fmt = s => isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "0:00";
+function updTime() {
+  timeEl.textContent = fmt(audio.currentTime) + " / " + fmt(audio.duration);
+  if (audio.duration) seek.value = (audio.currentTime / audio.duration) * 100;
+}
+function setIcon(playing) {
+  document.getElementById("icoPlay").hidden = playing;
+  document.getElementById("icoPause").hidden = !playing;
+  playBtn.setAttribute("aria-label", playing ? "Pauzeren" : "Afspelen");
+}
+function noAudio() {
+  playBtn.disabled = true; seek.disabled = true; speedBtn.disabled = true;
+  document.getElementById("pending").hidden = false;
+}
+playBtn.addEventListener("click", () => {
+  if (audio.paused) audio.play().catch(noAudio); else audio.pause();
+});
+audio.addEventListener("play", () => setIcon(true));
+audio.addEventListener("pause", () => setIcon(false));
+audio.addEventListener("ended", () => setIcon(false));
+audio.addEventListener("timeupdate", updTime);
+audio.addEventListener("loadedmetadata", updTime);
+audio.addEventListener("error", noAudio);
+seek.addEventListener("input", () => { if (audio.duration) audio.currentTime = (seek.value / 100) * audio.duration; });
+const speeds = [1, 1.25, 1.5];
+speedBtn.addEventListener("click", () => {
+  const n = speeds[(speeds.indexOf(audio.playbackRate) + 1) % speeds.length];
+  audio.playbackRate = n; speedBtn.textContent = String(n).replace(".", ",") + "x";
+});
+
+renderNav();
+</script>
+
+</body>
+</html>
