@@ -99,6 +99,12 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 .disclosure ul { margin: 0; padding: 0 18px 16px 38px; display: flex; flex-direction: column; gap: 6px; }
 .rode { margin-top: 20px; padding: 16px 18px; border-radius: 12px; border: 1px dashed var(--sage); color: var(--ink); }
 .rode b { color: var(--sage); }
+.step-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 20px; flex-wrap: wrap; }
+.step-head > div { min-width: 0; }
+.full-btn { font: inherit; font-size: 14px; font-weight: 600; color: var(--sage); background: var(--surface); border: 1.5px solid var(--sage); border-radius: 99px; padding: 8px 16px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 4px; }
+.full-btn:hover { background: var(--sage-soft); }
+.full-btn[aria-pressed="true"] { background: var(--sage); color: var(--on-sage); }
+.full-btn svg { width: 16px; height: 16px; fill: currentColor; flex: none; }
 .listen-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; align-items: start; }
 .listen-main { min-width: 0; }
 .sources { border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; min-width: 0; }
@@ -172,9 +178,14 @@ textarea { font: inherit; font-size: 15px; color: var(--ink); background: var(--
 
   <main class="card">
     <section class="step" id="step-luister">
-      <div class="kicker">Stap 1 · Luisteren</div>
-      <h2>Wanneer versterkt AI het leren?</h2>
-      <p class="lead">Luister naar de podcast van ongeveer 3 minuten. Daarna beantwoord je drie korte vragen.</p>
+      <div class="step-head">
+        <div>
+          <div class="kicker">Stap 1 · Luisteren</div>
+          <h2>Wanneer versterkt AI het leren?</h2>
+        </div>
+        <button class="full-btn" id="fullBtn" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-9 9v6a3 3 0 0 0 3 3h1a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5v-1a7 7 0 0 1 14 0v1h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h1a3 3 0 0 0 3-3v-6a9 9 0 0 0-9-9z"/></svg><span id="fullLabel">Luister de gehele podcast (25 minuten)</span></button>
+      </div>
+      <p class="lead">Luister naar de korte podcast van ongeveer 2 minuten. Daarna beantwoord je drie korte vragen.</p>
 
       <div class="listen-grid">
       <div class="listen-main">
@@ -184,7 +195,7 @@ textarea { font: inherit; font-size: 15px; color: var(--ink); background: var(--
           <svg id="icoPause" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
         </button>
         <div style="min-width:0">
-          <div class="ptitle">Podcast: AI als leerversterker in blended onderwijs</div>
+          <div class="ptitle" id="ptitle">Korte podcast: AI als leerversterker in blended onderwijs</div>
           <div class="psub">Geen voorkennis nodig</div>
           <div class="scrub">
             <input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="Positie in de podcast">
@@ -193,7 +204,7 @@ textarea { font: inherit; font-size: 15px; color: var(--ink); background: var(--
           </div>
           <div class="pending" id="pending" hidden>De podcast wordt hier binnenkort toegevoegd.</div>
         </div>
-        <audio id="audio" preload="metadata" src="AI_als_tutor_niet_als_antwoordenmachine.m4a"></audio>
+        <audio id="audio" preload="metadata" src="AI_als_tutor_niet_als_antwoordenmachine.m4a" data-short="AI_als_tutor_niet_als_antwoordenmachine.m4a" data-long="podcast-volledig.m4a"></audio>
       </div>
 
       <details class="disclosure">
@@ -457,6 +468,22 @@ function noAudio() {
   playBtn.disabled = true; seek.disabled = true; speedBtn.disabled = true;
   document.getElementById("pending").hidden = false;
 }
+const fullBtn = document.getElementById("fullBtn");
+let longMode = false;
+fullBtn.addEventListener("click", () => {
+  longMode = !longMode;
+  audio.pause();
+  audio.src = longMode ? audio.dataset.long : audio.dataset.short;
+  playBtn.disabled = false; seek.disabled = false; speedBtn.disabled = false;
+  document.getElementById("pending").hidden = true;
+  seek.value = 0;
+  fullBtn.setAttribute("aria-pressed", String(longMode));
+  document.getElementById("fullLabel").textContent = longMode ? "Terug naar de korte podcast (2 minuten)" : "Luister de gehele podcast (25 minuten)";
+  document.getElementById("ptitle").textContent = (longMode ? "Gehele podcast" : "Korte podcast") + ": AI als leerversterker in blended onderwijs";
+  audio.playbackRate = 1; speedBtn.textContent = "1x";
+  audio.play().catch(() => {});
+  document.getElementById("player").scrollIntoView({ block: "nearest", behavior: "smooth" });
+});
 playBtn.addEventListener("click", () => {
   if (audio.paused) audio.play().catch(noAudio); else audio.pause();
 });
